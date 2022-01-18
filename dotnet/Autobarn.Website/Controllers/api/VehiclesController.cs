@@ -1,6 +1,8 @@
 ﻿using Autobarn.Data;
 using Autobarn.Data.Entities;
+using Autobarn.Messages;
 using Autobarn.Website.Models;
+using EasyNetQ;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -10,40 +12,14 @@ using System.Linq;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace Autobarn.Website.Controllers.api {
-
-    [Route("api")]
-    [ApiController]
-    public class ApiController : ControllerBase {
-        [HttpGet]
-        [Produces("application/hal+json")]
-        public IActionResult Welcome() {
-            var greeting = new {
-                _links = new {
-                    vehicles = new {
-                        href = "/api/vehicles"
-                    }
-                },
-                _actions = new {
-                    create = new {
-                        href = "/api/vehicles",
-                        method = "POST",
-                        name = "Create a new vehicle",
-                        type = "application/json"
-                    }
-                },
-                message = "Welcome to the Autobarn API"
-            };
-            return Ok(greeting);
-        }
-
-
-    }
     [Route("api/[controller]")]
     [ApiController]
     public class VehiclesController : ControllerBase {
         private readonly IAutobarnDatabase db;
+        private readonly IBus bus;
 
-        public VehiclesController(IAutobarnDatabase db) {
+        public VehiclesController(IAutobarnDatabase db, IBus bus) {
+            this.bus = bus;
             this.db = db;
         }
 
@@ -97,7 +73,20 @@ namespace Autobarn.Website.Controllers.api {
                 VehicleModel = vehicleModel
             };
             db.CreateVehicle(vehicle);
+            PublishNewVehicleNotification(vehicle);
             return Created($"/api/vehicles/{vehicle.Registration}", dto);
+        }
+
+        private void PublishNewVehicleNotification(Vehicle vehicle) {
+            var message = new NewVehicleMessage {
+                Color = vehicle.Color,
+                ManufacturerName = vehicle.VehicleModel?.Manufacturer?.Name ?? "(unknown)",
+                ModelName = vehicle.VehicleModel?.Name ?? "(unknown)",
+                Year = vehicle.Year,
+                Registration = vehicle.Registration,
+                ListedAt = DateTimeOffset.UtcNow
+            };
+            bus.PubSub.Publish(message);
         }
 
         // PUT api/vehicles/ABC123
