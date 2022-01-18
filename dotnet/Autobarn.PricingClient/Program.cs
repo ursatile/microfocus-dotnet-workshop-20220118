@@ -12,9 +12,10 @@ namespace Autobarn.PricingClient {
         private static readonly IConfigurationRoot config = ReadConfiguration();
 
         private static Pricer.PricerClient grpcClient;
+        private static IBus bus;
 
         static void Main(string[] args) {
-            using var bus = RabbitHutch.CreateBus(config.GetConnectionString("AutobarnRabbitMQConnectionString"));
+            bus = RabbitHutch.CreateBus(config.GetConnectionString("AutobarnRabbitMQConnectionString"));
             var channel = GrpcChannel.ForAddress(config["AutobarnGrpcServerUrl"]);
             grpcClient = new Pricer.PricerClient(channel);
             const string SUBSCRIBER_ID = "Autobarn.PricingClient";
@@ -33,6 +34,10 @@ namespace Autobarn.PricingClient {
             Console.WriteLine($"Calculating price for {v.ManufacturerName} {v.ModelName} ({v.Year}, {v.Color}...");
             var reply = await grpcClient.GetPriceAsync(priceRequest);
             Console.WriteLine($"{reply.Price} {reply.CurrencyCode}");
+
+            var newVehiclePriceMessage = v.ToPriceMessage(reply.Price, reply.CurrencyCode);
+            bus.PubSub.Publish(newVehiclePriceMessage);
+            Console.WriteLine("Published NewVehiclePriceMessage");
         }
 
         private static IConfigurationRoot ReadConfiguration() {

@@ -1,5 +1,6 @@
 using Autobarn.Data;
 using Autobarn.Website.GraphQL.Schemas;
+using Autobarn.Website.Hubs;
 using EasyNetQ;
 using GraphiQl;
 using GraphQL.Server;
@@ -42,6 +43,8 @@ namespace Autobarn.Website {
             services
                 .AddGraphQL(options => options.EnableMetrics = false)
                 .AddNewtonsoftJson();
+
+            services.AddSignalR();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
@@ -60,10 +63,12 @@ namespace Autobarn.Website {
             app.UseGraphQL<AutobarnSchema>();
             app.UseGraphiQl("/graphiql");
             app.UseEndpoints(endpoints => {
+                endpoints.MapHub<AutobarnHub>("/hub");
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
         }
+
     }
 }

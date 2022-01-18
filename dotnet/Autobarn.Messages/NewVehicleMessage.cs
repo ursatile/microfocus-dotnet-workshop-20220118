@@ -8,5 +8,22 @@ namespace Autobarn.Messages {
         public string ModelName { get; set; }
         public string ManufacturerName { get; set; }
         public DateTimeOffset ListedAt { get; set; }
+
+        public NewVehiclePriceMessage ToPriceMessage(int price, string currencyCode) {
+            return new NewVehiclePriceMessage {
+                Color = this.Color,
+                Year = this.Year,
+                Registration = this.Registration,
+                ModelName = this.ModelName,
+                ManufacturerName = this.ManufacturerName,
+                Price = price,
+                CurrencyCode = currencyCode
+            };
+        }
+    }
+
+    public class NewVehiclePriceMessage : NewVehicleMessage {
+        public int Price { get; set; }
+        public string CurrencyCode { get; set; }
     }
 }
