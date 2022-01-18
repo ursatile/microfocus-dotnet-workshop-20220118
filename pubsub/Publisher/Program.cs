@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using EasyNetQ;
+using Messages;
 
 var bus = RabbitHutch.CreateBus("amqps://lxsmehro:u_0Wh1RbOEQthm_8VDcFdTe7JsiLLsTm@whale.rmq.cloudamqp.com/lxsmehro");
 
@@ -12,10 +13,3 @@ while (true) {
     Console.WriteLine($"Published {greeting.Message}");
 }
 
-public class Greeting {
-    static int messageNumber = 0;
-    public string Message { get; set; }
-    public Greeting() {
-        Message = $"Greeting {messageNumber++} from {Environment.MachineName} at {DateTimeOffset.Now}";
-    }
-}
